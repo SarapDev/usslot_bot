@@ -6,21 +6,20 @@ use clap::{Parser, Subcommand};
 #[command(version = "0.1.0")]
 #[command(about = "Бот, который работает с гемблинг стикерами телеграмма")]
 pub struct Args {
-    #[arg(short, long, default_value = "config.toml")]
+    #[arg(short, long, default_value = "config/testing.toml")]
     pub config: String,    
 
     #[arg(short, long, default_value = "info")]
     pub log_level: Option<String>,
 
     #[command(subcommand)]
-    pub command: Option<Commands>
+    pub command: Commands
 }
 
 #[derive(Subcommand)]
-enum Commands {
+pub enum Commands {
     /// Запускает бота
-    Bot { 
-    }
+    Bot
 }
 
 impl Args {

@@ -1,5 +1,10 @@
 pub mod config;
+pub mod telergam;
+pub mod errors;
 
-pub use config::config::{AppConfig};
+pub use config::config::AppConfig;
+pub use config::cli::{Args, Commands};
+pub use telergam::update_handler::UpdateHandler;
+pub use errors::bot_error::BotError;
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, BotError>;
