@@ -1,0 +1,10 @@
+[Telegram]
+BotName = ""
+Token = ""
+
+[Mongo]
+URL = ""
+Name = ""
+
+[Logger]
+LogLevel = ""
