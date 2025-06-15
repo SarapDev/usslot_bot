@@ -26,8 +26,12 @@ impl UpdateHandler {
         }
     }
     
-    async fn get_updates(&self) -> Result<Vec<Update>> {
-        let url = format!("{}/getUpdates", self.base_url);
+    async fn get_updates(&self, offset: Option<i64>) -> Result<Vec<Update>> {
+        let mut url = format!("{}/getUpdates", self.base_url);
+
+        if let Some(offset) = offset {
+            url.push_str(&format!("?offset={}", offset));
+        }
 
         let response = self.client.get(&url).send().await?;
 
@@ -50,11 +54,13 @@ impl UpdateHandler {
     }
 
     pub async fn run(&self) {
+        let mut offset = None;
         loop {
-            match self.get_updates().await {
+            match self.get_updates(offset).await {
                 Ok(updates) => {
                     for update in updates {
-                        info!("{:?}", update)
+                        info!("{:?}", update);
+                        offset = Some(update.update_id + 1);
                     }  
                 },
                 Err(e) => error!("Fail to get update {}", e),
