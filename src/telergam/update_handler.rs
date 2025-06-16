@@ -1,11 +1,9 @@
-use log::{error, info, debug};
+use log::{error, info};
 use reqwest::Client;
 
-use crate::telergam::types::Update;
-use crate::Result;
+use crate::telergam::types::*;
+use crate::{handle_dice, Result};
 use crate::errors::BotError;
-
-use super::types::TelegramResponse;
 
 pub struct UpdateHandler {
     token: String,
@@ -53,6 +51,34 @@ impl UpdateHandler {
         }
     }
 
+    pub async fn send_message(&self, chat_id: i64, text: String) -> Result<()> {
+        let url = format!("{}/sendMessage", self.base_url);
+        let request = SendMessageRequest { chat_id, text, parse_mode: None };
+        
+        let response = self.client
+            .post(&url)
+            .json(&request)
+            .send()
+            .await?;
+            
+        if response.status().is_success() {
+            let result: TelegramResponse<serde_json::Value> = response.json().await?;
+            if result.ok {
+                info!("Message sent successfully to chat_id: {}", chat_id);
+            } else {
+                error!("Telegram API returned error: {:?}", result.description);
+                return Err(BotError::Telegram(
+                    result.description.unwrap_or_else(|| "Unknown error".to_string())
+                ));
+            }
+        } else {
+            error!("Failed to send message to chat_id: {}, status: {}", chat_id, response.status());
+            return Err(BotError::Http(response.error_for_status().unwrap_err()));
+        }
+        
+        Ok(())
+    }
+
     pub async fn run(&self) {
         let mut offset = None;
         loop {
@@ -61,11 +87,33 @@ impl UpdateHandler {
                     for update in updates {
                         info!("{:?}", update);
                         offset = Some(update.update_id + 1);
+                        
+                        self.handle_update(&update).await;
                     }  
                 },
                 Err(e) => error!("Fail to get update {}", e),
             }
             tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         }    
+    }
+
+    pub async fn handle_update(&self, update: &Update) { 
+        match update.get_type() {
+            UpdateType::Message(msg) => self.handle_message(msg).await,
+            UpdateType::EditedMessage(_msg) => (),
+            UpdateType::CallbackQuery(_callback) => (),
+            UpdateType::Unknown => (),
+        }
+    }
+
+    pub async fn handle_message(&self, msg: &Message) {
+        if let Some(dice) = &msg.dice {
+            let result = handle_dice(&dice); 
+
+            match self.send_message(msg.chat.id, result).await {
+                Ok(_) => (),
+                Err(e) => error!("Error, while sending message. {:?}", e),
+            }
+        }            
     }
 }

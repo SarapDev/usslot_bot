@@ -1,1 +1,1 @@
-pub mod gambling;
+pub mod dice;

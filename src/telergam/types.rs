@@ -1,5 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
+pub enum UpdateType<'a> {
+    Message(&'a Message),
+    EditedMessage(&'a Message),
+    CallbackQuery(&'a CallbackQuery),
+    Unknown,
+}
+
 #[derive(Serialize, Debug)]
 pub struct SendMessageRequest {
     pub chat_id: i64,
@@ -26,6 +34,17 @@ pub struct Update {
     pub callback_query: Option<CallbackQuery>,
 }
 
+impl Update {
+    pub fn get_type(&self) -> UpdateType {
+        match (&self.message, &self.edited_message, &self.callback_query) {
+            (Some(msg), None, None) => UpdateType::Message(msg),
+            (None, Some(msg), None) => UpdateType::EditedMessage(msg),
+            (None, None, Some(callback)) => UpdateType::CallbackQuery(callback),
+            _ => UpdateType::Unknown,
+        } 
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Message {
     pub message_id: i64,
@@ -35,6 +54,8 @@ pub struct Message {
     pub from: Option<User>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dice: Option<Dice>
 }
 
 #[derive(Deserialize, Debug)]
@@ -73,4 +94,10 @@ pub struct CallbackQuery {
     pub message: Option<Message>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Dice {
+    pub emoji: String,
+    pub value: i32,
 }
