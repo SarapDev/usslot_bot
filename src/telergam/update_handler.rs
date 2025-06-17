@@ -1,5 +1,5 @@
 use log::{error, info};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 
 use crate::telergam::types::*;
 use crate::{handle_dice, Result};
@@ -51,7 +51,7 @@ impl UpdateHandler {
         }
     }
 
-    pub async fn send_message(&self, chat_id: i64, text: String) -> Result<()> {
+    pub async fn send_message(&self, chat_id: i64, text: &String) -> Result<()> {
         let url = format!("{}/sendMessage", self.base_url);
         let request = SendMessageRequest { chat_id, text, parse_mode: None };
         
@@ -73,6 +73,11 @@ impl UpdateHandler {
             }
         } else {
             error!("Failed to send message to chat_id: {}, status: {}", chat_id, response.status());
+            if response.status() == StatusCode::TOO_MANY_REQUESTS { 
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+                return Box::pin(self.send_message(chat_id, text)).await;
+            }
             return Err(BotError::Http(response.error_for_status().unwrap_err()));
         }
         
@@ -110,7 +115,7 @@ impl UpdateHandler {
         if let Some(dice) = &msg.dice {
             let result = handle_dice(&dice); 
 
-            match self.send_message(msg.chat.id, result).await {
+            match self.send_message(msg.chat.id, &result).await {
                 Ok(_) => (),
                 Err(e) => error!("Error, while sending message. {:?}", e),
             }

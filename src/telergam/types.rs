@@ -9,9 +9,9 @@ pub enum UpdateType<'a> {
 }
 
 #[derive(Serialize, Debug)]
-pub struct SendMessageRequest {
+pub struct SendMessageRequest<'a> {
     pub chat_id: i64,
-    pub text: String,
+    pub text: &'a String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parse_mode: Option<String>,
 }
