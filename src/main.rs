@@ -14,7 +14,7 @@ async fn main () -> Result<()> {
     match &args.command {
         Commands::Bot => {
             info!("Starting bot...");
-            let bot = UpdateHandler::new(config.bot.token.clone()); 
+            let bot = UpdateHandler::new(&config.bot.token); 
 
             bot.run().await;
         }
