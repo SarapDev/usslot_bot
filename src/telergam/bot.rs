@@ -40,7 +40,6 @@ impl Bot {
        let result: TelegramResponse<Vec<Update>> = response.json().await?;
         
         if result.ok {
-            info!("Received {} updates", result.result.as_ref().map(|v| v.len()).unwrap_or(0));
             Ok(result.result.unwrap_or_default())
         } else {
             error!("Telegram API returned error: {:?}", result.description);

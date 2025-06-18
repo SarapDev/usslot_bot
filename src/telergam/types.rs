@@ -23,7 +23,7 @@ pub struct TelegramResponse<T> {
     pub description: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Update {
     pub update_id: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,7 +45,7 @@ impl Update {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Message {
     pub message_id: i64,
     pub date: i64,
@@ -58,7 +58,7 @@ pub struct Message {
     pub dice: Option<Dice>
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Chat {
     pub id: i64,
     #[serde(rename = "type")]
@@ -73,7 +73,7 @@ pub struct Chat {
     pub last_name: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct User {
     pub id: i64,
     pub is_bot: bool,
@@ -86,7 +86,7 @@ pub struct User {
     pub language_code: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct CallbackQuery {
     pub id: String,
     pub from: User,

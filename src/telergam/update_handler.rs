@@ -1,19 +1,38 @@
+use std::sync::Arc;
+
 use log::{error, info};
 
+use crate::services::dice::DiceService;
 use crate::telergam::types::*;
-use crate::handle_dice;
 use crate::telergam::bot::Bot;
 
+pub struct Services {
+    dice: Arc<DiceService>,
+}
+
+impl Services {
+    pub fn new(
+        dice: Arc<DiceService>
+    ) -> Self {
+        Self {
+            dice,
+        } 
+    }
+}
+
 /// Struct that handle all types of updates
+#[derive(Clone)]
 pub struct UpdateHandler {
-    bot: Bot,
+    services: Arc<Services>, 
+    bot: Arc<Bot>,
 }
 
 impl UpdateHandler {
     /// Generate object with bot filed
-    pub fn new(token: &String) -> Self {
+    pub fn new(token: &String, services: Arc<Services>) -> Self {
         Self { 
-            bot: Bot::new(token) 
+            services,
+            bot: Arc::new(Bot::new(token)),
         }
     }
 
@@ -26,8 +45,13 @@ impl UpdateHandler {
                     for update in updates {
                         info!("{:?}", update);
                         offset = Some(update.update_id + 1);
-                        
-                        self.handle_update(&update).await;
+
+                        let update = update.clone(); // clone for task
+                        let handler = self.clone(); 
+
+                        tokio::spawn(async move { 
+                            handler.handle_update(&update).await;
+                        });
                     }  
                 },
                 Err(e) => error!("Fail to get update {}", e),
@@ -49,11 +73,10 @@ impl UpdateHandler {
     /// Handle text message update
     pub async fn handle_message(&self, msg: &Message) {
         if let Some(dice) = &msg.dice {
-            let result = handle_dice(&dice); 
-
-            match self.bot.send_message(msg.chat.id, &result).await {
-                Ok(_) => (),
-                Err(e) => error!("Error, while sending message. {:?}", e),
+            if let Some(text) = self.services.dice.handle(dice) {
+                if let Err(e) = self.bot.send_message(msg.chat.id, &text).await {
+                    error!("Error while sending message: {:?}", e);
+                }
             }
         }            
     }

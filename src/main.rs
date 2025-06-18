@@ -1,4 +1,6 @@
-use usslot_bot::{AppConfig, Args, Commands, Result, UpdateHandler};
+use std::sync::Arc;
+
+use usslot_bot::{services::dice::DiceService, telergam::update_handler::Services, AppConfig, Args, Commands, DatabaseConnection, Result, UpdateHandler};
 use log::info;
 
 #[tokio::main]
@@ -14,7 +16,15 @@ async fn main () -> Result<()> {
     match &args.command {
         Commands::Bot => {
             info!("Starting bot...");
-            let bot = UpdateHandler::new(&config.bot.token); 
+            let db = DatabaseConnection::new(&config.database).await?;
+            
+            db.ping().await?;
+            info!("Database connection verified");
+
+            let services = Services::new(
+                Arc::new(DiceService::new()),
+            );
+            let bot = UpdateHandler::new(&config.bot.token, Arc::new(services)); 
 
             bot.run().await;
         }
