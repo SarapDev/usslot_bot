@@ -4,7 +4,7 @@ use crate::config::config::Database as DatabaseConfig;
 use crate::errors::bot_error::BotError;
 use crate::Result;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct DatabaseConnection {
     pub client: Client,
     pub database: Database,

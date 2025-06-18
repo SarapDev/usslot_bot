@@ -3,6 +3,7 @@ pub mod telergam;
 pub mod errors;
 pub mod services;
 pub mod database;
+pub mod repository; 
 
 pub use config::config::AppConfig;
 pub use config::cli::{Args, Commands};

@@ -73,10 +73,15 @@ impl UpdateHandler {
     /// Handle text message update
     pub async fn handle_message(&self, msg: &Message) {
         if let Some(dice) = &msg.dice {
-            if let Some(text) = self.services.dice.handle(dice) {
-                if let Err(e) = self.bot.send_message(msg.chat.id, &text).await {
-                    error!("Error while sending message: {:?}", e);
-                }
+            match self.services.dice.handle(msg.from.as_ref().unwrap(), dice).await {
+                Ok(text) => {
+                    if let Some(text) = text {
+                        if let Err(e) = self.bot.send_message(msg.chat.id, &text).await {
+                            error!("Error while sending message: {:?}", e);
+                        }
+                    }
+                },
+                Err(e) => error!("Error while handle dice: {:?}", e)
             }
         }            
     }

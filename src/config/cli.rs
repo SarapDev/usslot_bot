@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "USSlotBot")]
-#[command(version = "0.1.0")]
+#[command(version = "0.5.0")]
 #[command(about = "Бот, который работает с гемблинг стикерами телеграмма")]
 pub struct Args {
     #[arg(short, long, default_value = "config/testing.toml")]
