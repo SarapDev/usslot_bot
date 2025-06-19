@@ -56,7 +56,7 @@ impl DiceService {
             }
             _ => {
                 // No win - just deduct the bet
-                return self.handle_loss(user.id).await;
+                return self.handle_loss(user).await;
             }
         };
 
@@ -78,11 +78,16 @@ impl DiceService {
         }
     }
 
-    async fn handle_loss(&self, telegram_id: i64) -> Result<Option<String>> {
+    async fn handle_loss(&self, user: &User) -> Result<Option<String>> {
         // Just deduct the bet (win_amount = 0)
-        match self.repository.process_bet(telegram_id, DEFAULT_BET, 0).await? {
-            Some(_) => Ok(None), // Return None for losses as in original code
-            None => Ok(Some("У тебя недостаточно средств для ставки, товарищ! 😔".to_string())),
+        match self.repository.get_or_create(user).await {
+            Ok(_) => {
+                match self.repository.process_bet(user.id, DEFAULT_BET, 0).await? {
+                    Some(_) => Ok(None), // Return None for losses as in original code
+                    None => Ok(Some("У тебя недостаточно средств для ставки, товарищ! 😔".to_string())),
+                }
+            },
+            Err(e) => Err(e),
         }
     }
 
