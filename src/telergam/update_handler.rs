@@ -72,17 +72,42 @@ impl UpdateHandler {
     
     /// Handle text message update
     pub async fn handle_message(&self, msg: &Message) {
+        // Handle telegram command (started with /)
+        if let Some(text) = &msg.text {
+            if text.starts_with("/") {
+                self.handle_command(text, msg.chat.id).await; 
+                return
+            }
+        }
+        
+        // Handle Dice message type
         if let Some(dice) = &msg.dice {
-            match self.services.dice.handle(msg.from.as_ref().unwrap(), dice).await {
-                Ok(text) => {
-                    if let Some(text) = text {
+            if let Some(from) = msg.from.as_ref() {
+                match self.services.dice.handle(from, dice).await {
+                    Ok(Some(text)) => {
                         if let Err(e) = self.bot.send_message(msg.chat.id, &text).await {
                             error!("Error while sending message: {:?}", e);
                         }
-                    }
-                },
-                Err(e) => error!("Error while handle dice: {:?}", e)
+                    },
+                    Ok(None) => {},
+                    Err(e) => error!("Error while handle dice: {:?}", e)
+                }
+
+                return
             }
         }            
+    }
+
+    /// Function, that execute get some logic to sended command
+    pub async fn handle_command(&self, text: &str, chat_id: i64) {
+        match text {
+            "start" => {
+                if let Err(e) = self.bot.send_message(chat_id, "Welcome message").await {
+                    error!("Error while sending message: {:?}", e);
+                }
+            },
+            "balance" => {},
+            _ => {},
+        }
     }
 }

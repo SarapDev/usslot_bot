@@ -50,7 +50,7 @@ impl Bot {
     }
 
     /// Sending message to chat with text
-    pub async fn send_message(&self, chat_id: i64, text: &String) -> Result<()> {
+    pub async fn send_message(&self, chat_id: i64, text: &str) -> Result<()> {
         let url = format!("{}/sendMessage", self.base_url);
         let request = SendMessageRequest { chat_id, text, parse_mode: None };
         
