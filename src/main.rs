@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use usslot_bot::{repository::user::UserRepository, services::dice::DiceService, telergam::update_handler::Services, AppConfig, Args, Commands, DatabaseConnection, Result, UpdateHandler};
+use usslot_bot::{repository::user::UserRepository, services::dice::DiceService, telegram::update_handler::Services, AppConfig, Args, Commands, DatabaseConnection, Result, UpdateHandler};
 use log::info;
 
 #[tokio::main]

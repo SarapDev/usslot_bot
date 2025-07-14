@@ -3,8 +3,8 @@ use std::sync::Arc;
 use log::{error, info};
 
 use crate::services::dice::DiceService;
-use crate::telergam::types::*;
-use crate::telergam::bot::Bot;
+use crate::telegram::types::*;
+use crate::telegram::bot::Bot;
 
 pub struct Services {
     dice: Arc<DiceService>,
@@ -106,7 +106,9 @@ impl UpdateHandler {
                     error!("Error while sending message: {:?}", e);
                 }
             },
-            "balance" => {},
+            "balance" => {
+                
+            },
             _ => {},
         }
     }

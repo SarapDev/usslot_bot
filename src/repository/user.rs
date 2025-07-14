@@ -2,7 +2,7 @@ use mongodb::bson::oid::ObjectId;
 use mongodb::bson::doc;
 use mongodb::options::{FindOneAndUpdateOptions, ReturnDocument};
 use serde::{Deserialize, Serialize};
-use crate::telergam::types::User as TelegramUser;
+use crate::telegram::types::User as TelegramUser;
 use crate::{DatabaseConnection, Result};
 
 pub struct UserRepository {
@@ -13,7 +13,7 @@ pub struct UserRepository {
 pub struct User {
     #[serde(rename = "_id")]
     pub id: ObjectId,
-    pub telergam_id: i64,
+    pub telegram_id: i64,
     pub is_bot: bool,
     pub first_name: String,
     pub last_name: Option<String>,
@@ -25,7 +25,7 @@ pub struct User {
 impl From<&User> for TelegramUser { 
     fn from(t: &User) -> Self {
         TelegramUser {
-            id: t.telergam_id,
+            id: t.telegram_id,
             first_name: t.first_name.clone(),
             last_name: t.last_name.clone(),
             username: t.username.clone(),
@@ -39,7 +39,7 @@ impl From<&TelegramUser> for User {
     fn from(t: &TelegramUser) -> Self {
         User {
             id: ObjectId::new(),
-            telergam_id: t.id,
+            telegram_id: t.id,
             first_name: t.first_name.clone(),
             last_name: t.last_name.clone(),
             username: t.username.clone(),
@@ -66,10 +66,9 @@ impl UserRepository {
         Ok(user)
     }
  
-    /// Update user instance - FIXED: use telergam_id instead of id
     pub async fn update(&self, user: &User) -> Result<Option<User>> {
         self.collection
-            .replace_one(doc! { "telergam_id": user.telergam_id }, user, None)
+            .replace_one(doc! { "telegram_id": user.telegram_id }, user, None)
             .await?;
         Ok(Some(user.clone()))
     }
@@ -77,14 +76,14 @@ impl UserRepository {
     /// Find user by telegram ID 
     pub async fn get_by_id(&self, id: i64) -> Result<Option<User>> {
         let user = self.collection
-            .find_one(doc! { "telergam_id": id }, None)
+            .find_one(doc! { "telegram_id": id }, None)
             .await?;
         Ok(user)
     }
     
     /// Atomically update user balance - prevents race conditions
     pub async fn atomic_balance_update(&self, telegram_id: i64, balance_change: i64) -> Result<Option<User>> {
-        let filter = doc! { "telergam_id": telegram_id };
+        let filter = doc! { "telegram_id": telegram_id };
         let update = doc! { "$inc": { "balance": balance_change } };
         
         let options = FindOneAndUpdateOptions::builder()
@@ -115,7 +114,7 @@ impl UserRepository {
         
         // Only proceed if user has enough balance
         let balance_check = doc! { 
-            "telergam_id": telegram_id,
+            "telegram_id": telegram_id,
             "balance": { "$gte": bet_amount }
         };
         

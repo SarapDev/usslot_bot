@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{repository::user::UserRepository, telergam::types::{Dice, User}, Result};
+use crate::{repository::user::UserRepository, telegram::types::{Dice, User}, Result};
 
 const DEFAULT_BET: i64 = 5;
 
@@ -21,8 +21,8 @@ impl DiceService {
     }
     
     /// Get types of handling dice
-    /// Each dice have own buisness logic
-    /// In this bolock we get result for each dice and write data to DB
+    /// Each dice have own business logic
+    /// In this block we get result for each dice and write data to DB
     pub async fn handle(&self, user: &User, dice: &Dice) -> Result<Option<String>> {
         match dice.emoji.as_str() {
             "🎯"  => Ok(None), 
@@ -30,14 +30,14 @@ impl DiceService {
             "⚽"  => Ok(None), 
             "🎳"  => Ok(None),
             "🎲"  => Ok(None), 
-            "🎰"  => self.hadnle_slot(user, dice).await,
+            "🎰"  => self.handle_slot(user, dice).await,
             _ => Ok(Some(format!("Товарищ, ты все поломал!\nРазжукивание: {} {}", dice.emoji.as_str(), dice.value))),
          } 
     }
     
     /// Handle slot sticker and update user profile
     /// If user doesn't exist we create it
-    pub async fn hadnle_slot(&self, user: &User, dice: &Dice) -> Result<Option<String>> {
+    pub async fn handle_slot(&self, user: &User, dice: &Dice) -> Result<Option<String>> {
         let base = "Твоя ставка 5 🎟, Товарищ!\n";
 
         // Calculate winnings based on dice value

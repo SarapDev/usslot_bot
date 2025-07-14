@@ -1,7 +1,7 @@
 use log::{error, info};
 use reqwest::{Client,StatusCode};
 
-use crate::telergam::types::*;
+use crate::telegram::types::*;
 use crate::Result;
 use crate::errors::BotError;
 
