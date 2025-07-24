@@ -107,7 +107,9 @@ impl UpdateHandler {
                 }
             },
             "balance" => {
-                
+                if let Err(e) = self.bot.send_message(chat_id, ).await {
+                    error!("Error while sending user balance: {:?}", e)
+                }
             },
             _ => {},
         }

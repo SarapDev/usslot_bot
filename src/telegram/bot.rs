@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
+
 use log::{error, info};
 use reqwest::{Client,StatusCode};
 
@@ -5,21 +10,42 @@ use crate::telegram::types::*;
 use crate::Result;
 use crate::errors::BotError;
 
+pub type CommandCallback = Arc<dyn Fn(Bot, i64) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync>;
+
 /// Struct, that making request to telegram
 pub struct Bot {
     client: Client,
     base_url: String,
+    commands: HashMap<String, CommandCallback>
 }
 
 impl Bot {
     pub fn new(token: &String) -> Self {
         info!("Initialize bot");
         let base_url = format!("https://api.telegram.org/bot{}", token);
-
-        Self { 
+        let mut bot = Self { 
             client: Client::new(), 
             base_url,
-        }
+            commands: HashMap::new(),
+        };
+
+        bot.register("start", Arc::new(|bot, chat_id| {
+            Box::pin(async move {
+                bot.send_message(chat_id, "Welcome message").await
+            })
+        }));
+
+        bot.register("balance", Arc::new(|bot, chat_id| {
+            Box::pin(async move {
+                bot.send_message(chat_id, "Balance command").await
+            })
+        }));
+
+        bot
+    }
+
+    pub fn register(&mut self, name: &str, logic: CommandCallback) {
+        self.commands.insert(name.to_string(), logic);
     }
 
     /// Getting updates from telegram
