@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use usslot_bot::{repository::user::UserRepository, services::dice::DiceService, telegram::update_handler::Services, AppConfig, Args, Commands, DatabaseConnection, Result, UpdateHandler};
+use usslot_bot::{repository::user::UserRepository, services::{balance::BalanceService, dice::DiceService}, telegram::update_handler::Services, AppConfig, Args, Commands, DatabaseConnection, Result, UpdateHandler};
 use log::info;
 
 #[tokio::main]
@@ -24,7 +24,8 @@ async fn main () -> Result<()> {
             let user_repository = Arc::new(UserRepository::new(&db)); 
 
             let services = Services::new(
-                Arc::new(DiceService::new(user_repository)),
+                Arc::new(DiceService::new(user_repository.clone())),
+                Arc::new(BalanceService::new(user_repository)),
             );
             let bot = UpdateHandler::new(&config.bot.token, Arc::new(services)); 
 
@@ -39,8 +40,8 @@ fn init_logger(log_level: &str) -> Result<()> {
     let level = match log_level.to_lowercase().as_str() {
         "trace" => log::LevelFilter::Trace,
         "debug" => log::LevelFilter::Debug,
-        "info" => log::LevelFilter::Info,
-        "warn" => log::LevelFilter::Warn,
+        "info"  => log::LevelFilter::Info,
+        "warn"  => log::LevelFilter::Warn,
         "error" => log::LevelFilter::Error,
         _ => {
             eprintln!("Invalid log level: {}. Using 'info' as default.", log_level);

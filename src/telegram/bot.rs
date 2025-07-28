@@ -1,8 +1,3 @@
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-
 use log::{error, info};
 use reqwest::{Client,StatusCode};
 
@@ -10,42 +5,21 @@ use crate::telegram::types::*;
 use crate::Result;
 use crate::errors::BotError;
 
-pub type CommandCallback = Arc<dyn Fn(Bot, i64) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync>;
 
 /// Struct, that making request to telegram
 pub struct Bot {
     client: Client,
     base_url: String,
-    commands: HashMap<String, CommandCallback>
 }
 
 impl Bot {
     pub fn new(token: &String) -> Self {
         info!("Initialize bot");
-        let base_url = format!("https://api.telegram.org/bot{}", token);
-        let mut bot = Self { 
+
+        Self { 
             client: Client::new(), 
-            base_url,
-            commands: HashMap::new(),
-        };
-
-        bot.register("start", Arc::new(|bot, chat_id| {
-            Box::pin(async move {
-                bot.send_message(chat_id, "Welcome message").await
-            })
-        }));
-
-        bot.register("balance", Arc::new(|bot, chat_id| {
-            Box::pin(async move {
-                bot.send_message(chat_id, "Balance command").await
-            })
-        }));
-
-        bot
-    }
-
-    pub fn register(&mut self, name: &str, logic: CommandCallback) {
-        self.commands.insert(name.to_string(), logic);
+            base_url: format!("https://api.telegram.org/bot{}", token),
+        }
     }
 
     /// Getting updates from telegram
@@ -78,7 +52,11 @@ impl Bot {
     /// Sending message to chat with text
     pub async fn send_message(&self, chat_id: i64, text: &str) -> Result<()> {
         let url = format!("{}/sendMessage", self.base_url);
-        let request = SendMessageRequest { chat_id, text, parse_mode: None };
+        let request = SendMessageRequest { 
+            chat_id, 
+            text, 
+            parse_mode: Some("html".to_string()),
+        };
         
         let response = self.client
             .post(&url)
@@ -97,16 +75,23 @@ impl Bot {
                 ));
             }
         } else {
-            error!("Failed to send message to chat_id: {}, status: {}", chat_id, response.status());
-            if response.status() == StatusCode::TOO_MANY_REQUESTS { 
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            let status = response.status();
+            let http_error = response.text().await.unwrap_err();
 
+            error!(
+                "Failed to send message to chat_id: {}, status: {}, error: {}",
+                chat_id,
+                status,
+                http_error,
+            );
+
+            if status == StatusCode::TOO_MANY_REQUESTS {
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
                 return Box::pin(self.send_message(chat_id, text)).await;
             }
-            return Err(BotError::Http(response.error_for_status().unwrap_err()));
-        }
-        
+
+            return Err(BotError::Http(reqwest::Error::from(http_error)));        
+        }    
         Ok(())
     }
-
 }

@@ -1,4 +1,10 @@
+use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
+use crate::services::balance::BalanceService;
+use crate::telegram::command::{handle_balance_command, handle_welcome_command};
+use crate::Result;
 
 use log::{error, info};
 
@@ -8,32 +14,53 @@ use crate::telegram::bot::Bot;
 
 pub struct Services {
     dice: Arc<DiceService>,
+    balance: Arc<BalanceService>,
 }
 
 impl Services {
     pub fn new(
-        dice: Arc<DiceService>
+        dice: Arc<DiceService>,
+        balance: Arc<BalanceService>,
     ) -> Self {
         Self {
             dice,
-        } 
+            balance,
+        }
     }
 }
+
+pub type CommandCallback = Arc<dyn Fn(Arc<Bot>, Arc<Services>,i64) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync>;
 
 /// Struct that handle all types of updates
 #[derive(Clone)]
 pub struct UpdateHandler {
     services: Arc<Services>, 
     bot: Arc<Bot>,
+    commands: HashMap<String, CommandCallback>
 }
 
 impl UpdateHandler {
     /// Generate object with bot filed
     pub fn new(token: &String, services: Arc<Services>) -> Self {
-        Self { 
+        let mut handler = Self { 
             services,
             bot: Arc::new(Bot::new(token)),
-        }
+            commands: HashMap::new(),
+        };
+
+        handler.register("/start", Arc::new(|bot, _services, chat_id| {
+            Box::pin(handle_welcome_command(bot, chat_id))
+        }));
+
+        handler.register("/balance", Arc::new(|bot, services, chat_id| {
+            Box::pin(handle_balance_command(bot, services.clone().balance.clone(), chat_id))
+        }));
+        
+        handler
+    }
+
+    pub fn register(&mut self, name: &str, logic: CommandCallback) {
+        self.commands.insert(name.to_string(), logic);
     }
 
     /// Running main update telegram handler 
@@ -100,18 +127,12 @@ impl UpdateHandler {
 
     /// Function, that execute get some logic to sended command
     pub async fn handle_command(&self, text: &str, chat_id: i64) {
-        match text {
-            "start" => {
-                if let Err(e) = self.bot.send_message(chat_id, "Welcome message").await {
-                    error!("Error while sending message: {:?}", e);
-                }
-            },
-            "balance" => {
-                if let Err(e) = self.bot.send_message(chat_id, ).await {
-                    error!("Error while sending user balance: {:?}", e)
-                }
-            },
-            _ => {},
-        }
+        if let Some(callback) = self.commands.get(text) {
+            if let Err(e) = callback(self.bot.clone(), self.services.clone(), chat_id).await {
+                error!("Error while hande {:?} command. Error: {:?}", text, e) 
+            }
+        } else {
+            error!("Unknown command")
+        } 
     }
 }
