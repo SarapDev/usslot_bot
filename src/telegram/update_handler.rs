@@ -29,7 +29,7 @@ impl Services {
     }
 }
 
-pub type CommandCallback = Arc<dyn Fn(Arc<Bot>, Arc<Services>,i64) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync>;
+pub type CommandCallback = Arc<dyn Fn(Arc<Bot>, Arc<Services>, &Message) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync>;
 
 /// Struct that handle all types of updates
 #[derive(Clone)]
@@ -48,12 +48,16 @@ impl UpdateHandler {
             commands: HashMap::new(),
         };
 
-        handler.register("/start", Arc::new(|bot, _services, chat_id| {
-            Box::pin(handle_welcome_command(bot, chat_id))
+        handler.register("/start", Arc::new(|bot, _services, msg| {
+            Box::pin(handle_welcome_command(bot, msg.chat.id))
         }));
 
-        handler.register("/balance", Arc::new(|bot, services, chat_id| {
-            Box::pin(handle_balance_command(bot, services.clone().balance.clone(), chat_id))
+        handler.register("/balance", Arc::new(|bot, services, msg| {
+            Box::pin(handle_balance_command(
+                    bot,
+                    services.clone().balance.clone(),
+                    msg,
+                ))
         }));
         
         handler
@@ -102,7 +106,7 @@ impl UpdateHandler {
         // Handle telegram command (started with /)
         if let Some(text) = &msg.text {
             if text.starts_with("/") {
-                self.handle_command(text, msg.chat.id).await; 
+                self.handle_command(msg).await; 
                 return
             }
         }
@@ -126,9 +130,10 @@ impl UpdateHandler {
     }
 
     /// Function, that execute get some logic to sended command
-    pub async fn handle_command(&self, text: &str, chat_id: i64) {
+    pub async fn handle_command(&self, msg: &Message) {
+        let text = &msg.text.unwrap_or_default();
         if let Some(callback) = self.commands.get(text) {
-            if let Err(e) = callback(self.bot.clone(), self.services.clone(), chat_id).await {
+            if let Err(e) = callback(self.bot.clone(), self.services.clone(), msg).await {
                 error!("Error while hande {:?} command. Error: {:?}", text, e) 
             }
         } else {

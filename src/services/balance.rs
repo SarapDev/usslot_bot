@@ -19,6 +19,6 @@ impl BalanceService {
             None => 0,
         };
 
-        Ok(Some(format!("Твой баласн: {}", balance)))
+        Ok(Some(format!("Твой баласн: {} 🎟, товарищ!", balance)))
     }
 }
